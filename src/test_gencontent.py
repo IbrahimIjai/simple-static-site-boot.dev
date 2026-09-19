@@ -77,7 +77,7 @@ class TestGeneratePagesRecursive(unittest.TestCase):
             self.write(os.path.join(content, "blog", "tom", "index.md"), "# Tom")
             self.write(os.path.join(content, "notes.txt"), "not markdown")
 
-            generate_pages_recursive(content, template, public)
+            generate_pages_recursive(content, template, public, "/")
 
             self.assertEqual(
                 self.read(os.path.join(public, "index.html")),
@@ -90,6 +90,29 @@ class TestGeneratePagesRecursive(unittest.TestCase):
             )
             self.assertFalse(os.path.exists(os.path.join(public, "notes.txt")))
             self.assertFalse(os.path.exists(os.path.join(public, "notes.html")))
+
+    def test_rewrites_root_links_with_basepath(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            content = os.path.join(tmp, "content")
+            public = os.path.join(tmp, "public")
+            template = os.path.join(tmp, "template.html")
+            self.write(template, '<link href="/index.css" />{{ Content }}')
+            self.write(
+                os.path.join(content, "index.md"),
+                "# Home\n\n![pic](/images/a.png)\n\n"
+                "[Tom](/blog/tom) and [Boot.dev](https://www.boot.dev)",
+            )
+
+            generate_pages_recursive(content, template, public, "/repo/")
+
+            self.assertEqual(
+                self.read(os.path.join(public, "index.html")),
+                '<link href="/repo/index.css" />'
+                "<div><h1>Home</h1>"
+                '<p><img src="/repo/images/a.png" alt="pic"></img></p>'
+                '<p><a href="/repo/blog/tom">Tom</a> and '
+                '<a href="https://www.boot.dev">Boot.dev</a></p></div>',
+            )
 
 
 if __name__ == "__main__":
